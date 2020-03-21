@@ -14,7 +14,7 @@
         </el-col>
         <el-col :span="1">
           <div class="grid-content bg-purple">
-            <a class="login-out" href="#">退出</a>
+            <a class="login-out" href="#" @click.prevent="handleSignout">退出</a>
           </div>
         </el-col>
       </el-row>
@@ -102,14 +102,23 @@
 </template>
 
 <script>
-
 export default {
-    beforeCreate(){
-        const token = localStorage.getItem('token')
-        if(!token){
-            this.$router.push({name:'login'})
-        }
+  beforeCreate() {
+    const token = localStorage.getItem("token")
+    if (!token) {
+      this.$router.push({ name: "login" })
     }
+  },
+  methods: {
+    handleSignout() {
+      localStorage.clear()
+      this.$message({
+        message: "退出成功",
+        type: "success"
+      })
+      this.$router.push({name:'login'})
+    }
+  }
 };
 </script>
 
