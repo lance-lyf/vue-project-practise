@@ -16,7 +16,7 @@
         >
           <el-button slot="append" @click="searchUser" icon="el-icon-search"></el-button>
         </el-input>
-        <el-button type="success" @click="dialogFormVisibleAdd=true">添加用户</el-button>
+        <el-button type="success" @click="dialogAddEvent">添加用户</el-button>
         <!-- add userlist dialog -->
         <el-dialog title="添加用户" :visible.sync="dialogFormVisibleAdd">
           <el-form :model="form">
@@ -40,7 +40,7 @@
         </el-dialog>
       </el-col>
     </el-row>
-    <el-table max-height="200px" :data="tableData" style="width: 100%">
+    <el-table max-height="600px" :data="tableData" style="width: 100%">
       <el-table-column type="index" label="#" width="180"></el-table-column>
       <el-table-column prop="username" label="姓名" width="180"></el-table-column>
       <el-table-column prop="email" label="邮箱"></el-table-column>
@@ -50,7 +50,12 @@
       </el-table-column>
       <el-table-column prop="mg_state" label="用户状态">
         <template slot-scope="scope">
-          <el-switch v-model="scope.row.mg_state" active-color="#13ce66" inactive-color="#ff4949"></el-switch>
+          <el-switch
+            v-model="scope.row.mg_state"
+            active-color="#13ce66"
+            inactive-color="#ff4949"
+            @change="changeMgState(scope.row)"
+          ></el-switch>
         </template>
       </el-table-column>
       <el-table-column prop="address" label="操作">
@@ -60,10 +65,10 @@
             type="primary"
             :plain="true"
             icon="el-icon-edit"
-            @click="showEditUserDia(scope.row.id)"
+            @click="showEditUserDia(scope.row)"
             circle
           ></el-button>
-          <el-button size="mini" type="success" :plain="true" icon="el-icon-check" circle></el-button>
+          <el-button size="mini" type="success" :plain="true" icon="el-icon-check"  @click="showSetUserRoleDia(scope.row)" circle></el-button>
           <el-button
             size="mini"
             type="danger"
@@ -99,7 +104,25 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisibleEdit = false">取 消</el-button>
-        <el-button type="primary" @click="dialogFormVisibleEdit = false" >确 定</el-button>
+        <el-button type="primary" @click="editUser">确 定</el-button>
+      </div>
+    </el-dialog>
+    <!-- 下拉选择框 -->
+    <el-dialog title="分配角色" :visible.sync="dialogFormVisibleRol">
+      <el-form :model="form">
+        <el-form-item label="用户名" label-width="100px">
+          {{currentUsername}}
+        </el-form-item>
+        <el-form-item label="活动区域" label-width="100px">
+          <el-select v-model="currentRoleId">
+            <el-option label="请选择" :value="-1"></el-option>
+            <el-option :label="item.roleName" :value="item.id" v-for="(item,i) of roles" :key="i"></el-option>
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dialogFormVisibleRol = false">取 消</el-button>
+        <el-button type="primary" @click="giveroles">确 定</el-button>
       </div>
     </el-dialog>
   </el-card>
@@ -113,6 +136,7 @@ export default {
       pagesize: 2,
       tableData: [],
       total: -1,
+      dialogFormVisibleRol: false,
       dialogFormVisibleAdd: false,
       dialogFormVisibleEdit: false,
       form: {
@@ -120,8 +144,11 @@ export default {
         password: "",
         email: "",
         mobile: ""
-      }
-      //分页
+      },
+      currentRoleId: -1,
+      currentUseId: -1,
+      currentUsername:'',
+      roles : []
     };
   },
   created() {
@@ -154,6 +181,12 @@ export default {
       } else {
         this.$message.warning(msg);
       }
+    },
+    async editUser() {
+      this.dialogFormVisibleEdit = false;
+      const res = await this.$http.put("users/" + this.form.id, this.form);
+      this.dialogFormVisibleEdit = false;
+      this.getUserList();
     },
     handleSizeChange(val) {
       console.log(`每页 ${val} 条`);
@@ -188,12 +221,6 @@ export default {
         this.$message.success(msg);
         //2,更新视图
         this.getUserList();
-        //3,清空文本框
-        for (const key in this.form) {
-          if (this.form.hasOwnProperty(key)) {
-            this.form[key] = "";
-          }
-        }
       } else {
         this.$message.warning(msg);
       }
@@ -222,8 +249,38 @@ export default {
           });
         });
     },
-    showEditUserDia(id){
+    showEditUserDia(user) {
+      this.form = user;
       this.dialogFormVisibleEdit = true;
+    },
+    dialogAddEvent() {
+      this.dialogFormVisibleAdd = true;
+      this.form = {};
+    },
+    async changeMgState(user) {
+      const res = await this.$http.put(
+        "users/" + user.id + "/state/" + user.mg_state
+      );
+      console.log(res);
+      this.$message.success(res.data.meta.msg);
+    },
+    //分配角色
+    async showSetUserRoleDia(user){
+        this.currentUseId = user.id;
+        this.dialogFormVisibleRol = true;
+        const res1 = await this.$http.get('users/'+ user.id);
+        this.currentUsername = res1.data.data.username;
+        this.currentRoleId = res1.data.data.rid;
+        const res2 = await this.$http.get('roles');
+        this.roles = res2.data.data;
+        console.log(res1,res2);
+    },
+    //分配用户角色
+    async giveroles(){
+      this.dialogFormVisibleRol = false;
+      const res = await this.$http.put('users/'+this.currentUseId+'/role',{
+        rid: this.currentRoleId
+      })
     }
   }
 };
