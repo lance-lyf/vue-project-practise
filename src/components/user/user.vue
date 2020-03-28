@@ -156,8 +156,6 @@ export default {
   },
   methods: {
     async getUserList() {
-      const AUTH_TOKEN = localStorage.getItem("token");
-      this.$http.defaults.headers.common["Authorization"] = AUTH_TOKEN;
       const res = await this.$http.get(
         "users?query=" +
           this.query +
@@ -203,8 +201,6 @@ export default {
       this.getUserList();
     },
     async addUserData() {
-      // const AUTH_TOKEN = localStorage.getItem("token");
-      // this.$http.defaults.headers.common["Authorization"] = AUTH_TOKEN;
       this.dialogFormVisibleAdd = false;
       const res = await this.$http.post("users", {
         username: this.form.username,
